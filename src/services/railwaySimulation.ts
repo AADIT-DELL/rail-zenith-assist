@@ -1,4 +1,5 @@
 import { Train, Section, Platform, Signal, TrackBlock, Recommendation, KPIMetrics, Incident } from '@/types/railway';
+import { csvDataLoader } from './csvDataLoader';
 
 class RailwaySimulationService {
   private trains: Train[] = [];
@@ -16,64 +17,92 @@ class RailwaySimulationService {
 
   private subscribers: ((data: any) => void)[] = [];
   private simulationInterval?: NodeJS.Timeout;
+  private dataLoaded = false;
 
   constructor() {
-    this.initializeSection();
-    this.generateInitialTrains();
-    this.startSimulation();
+    this.initializeWithRealData();
   }
 
-  private initializeSection() {
+  private async initializeWithRealData() {
+    try {
+      // Load CSV data
+      await csvDataLoader.loadData();
+      
+      // Get real trains and sections from CSV
+      this.trains = csvDataLoader.getTrainsData();
+      this.sections = csvDataLoader.getSectionsData();
+      
+      // If no CSV data available, fall back to synthetic data
+      if (this.trains.length === 0 || this.sections.length === 0) {
+        this.initializeFallbackData();
+      }
+      
+      this.dataLoaded = true;
+      this.generateInitialRecommendations();
+      this.startSimulation();
+      
+      console.log(`Loaded ${this.trains.length} trains across ${this.sections.length} sections from CSV data`);
+      
+    } catch (error) {
+      console.error('Failed to load CSV data, using fallback:', error);
+      this.initializeFallbackData();
+      this.dataLoaded = true;
+      this.generateInitialRecommendations();
+      this.startSimulation();
+    }
+  }
+
+  private initializeFallbackData() {
+    // Fallback section data
     const section: Section = {
-      id: 'SECT001',
+      id: 'SEC_01',
       name: 'Delhi-Gurgaon Section',
-      length: 35, // km
+      length: 101, // km - matches CSV data
       maxSpeed: 160,
       platforms: [
         { id: 'PF1', number: '1', length: 400, occupied: false, trains: [] },
         { id: 'PF2', number: '2', length: 400, occupied: false, trains: [] },
-        { id: 'PF3', number: '3', length: 300, occupied: false, trains: [] },
+        { id: 'PF3', number: '3', length: 350, occupied: false, trains: [] },
       ],
       signals: [
-        { id: 'SIG001', position: 0, state: 'GREEN', type: 'HOME' },
-        { id: 'SIG002', position: 15, state: 'GREEN', type: 'DISTANT' },
-        { id: 'SIG003', position: 35, state: 'GREEN', type: 'STARTER' },
+        { id: 'SEC_01_SIG_1', position: 0, state: 'GREEN', type: 'HOME' },
+        { id: 'SEC_01_SIG_2', position: 25, state: 'GREEN', type: 'DISTANT' },
+        { id: 'SEC_01_SIG_3', position: 50, state: 'YELLOW', type: 'DISTANT' },
+        { id: 'SEC_01_SIG_4', position: 75, state: 'GREEN', type: 'DISTANT' },
+        { id: 'SEC_01_SIG_5', position: 101, state: 'GREEN', type: 'STARTER' },
       ],
       blocks: [
-        { id: 'BLK001', start: 0, end: 10, occupied: false },
-        { id: 'BLK002', start: 10, end: 20, occupied: false },
-        { id: 'BLK003', start: 20, end: 35, occupied: false },
+        { id: 'SEC_01_BLK_1', start: 0, end: 25, occupied: false },
+        { id: 'SEC_01_BLK_2', start: 25, end: 50, occupied: true, occupyingTrain: 'T10025' },
+        { id: 'SEC_01_BLK_3', start: 50, end: 75, occupied: false },
+        { id: 'SEC_01_BLK_4', start: 75, end: 101, occupied: false },
       ]
     };
     this.sections = [section];
+    this.generateFallbackTrains();
   }
 
-  private generateInitialTrains() {
+  private generateFallbackTrains() {
     const trainTypes = ['EXPRESS', 'PASSENGER', 'FREIGHT'] as const;
-    const trainNames = [
-      'Rajdhani Express', 'Shatabdi Express', 'Duronto Express',
-      'Delhi Metro', 'Local Passenger', 'Intercity Express',
-      'Goods Train', 'Container Special', 'Coal Rake'
-    ];
-
+    
     for (let i = 0; i < 8; i++) {
       const type = trainTypes[Math.floor(Math.random() * trainTypes.length)];
       const priority = type === 'EXPRESS' ? 1 : type === 'PASSENGER' ? 2 : 3;
-      const delay = Math.random() * 15; // 0-15 minutes delay
+      const delay = Math.random() * 15;
 
       const train: Train = {
-        id: `TRAIN${(i + 1).toString().padStart(3, '0')}`,
+        id: `T${10000 + i}`,
         number: `${12000 + i}`,
         type,
         priority,
-        currentPosition: Math.random() * 35,
+        currentPosition: Math.random() * 101,
         currentSpeed: type === 'EXPRESS' ? 120 + Math.random() * 40 : 
                      type === 'PASSENGER' ? 80 + Math.random() * 40 : 
                      40 + Math.random() * 40,
         maxSpeed: type === 'EXPRESS' ? 160 : type === 'PASSENGER' ? 120 : 80,
         length: type === 'EXPRESS' ? 400 : type === 'PASSENGER' ? 300 : 500,
         status: Math.random() > 0.8 ? 'DELAYED' : 'RUNNING',
-        route: [`Station${i}`, `Station${i+1}`],
+        route: [`Station_${i}`, `Station_${i+1}`],
         scheduledArrival: new Date(Date.now() + (i + 1) * 10 * 60000),
         estimatedArrival: new Date(Date.now() + (i + 1) * 10 * 60000 + delay * 60000),
         delay: Math.round(delay),
@@ -84,41 +113,76 @@ class RailwaySimulationService {
     }
   }
 
+  private generateInitialRecommendations() {
+    this.generateRecommendations();
+  }
+
   private generateRecommendations() {
-    const recommendations = [
-      {
+    // Generate smarter recommendations based on actual train data
+    const delayedTrains = this.trains.filter(t => t.delay > 5);
+    const stoppedTrains = this.trains.filter(t => t.status === 'STOPPED');
+    const expressTrains = this.trains.filter(t => t.type === 'EXPRESS');
+    
+    const recommendations = [];
+    
+    // High-priority express train recommendations
+    if (expressTrains.length > 0 && delayedTrains.length > 0) {
+      const expressTrain = expressTrains[0];
+      recommendations.push({
         type: 'HOLD' as const,
-        description: 'Hold TRAIN002 at signal SIG001',
-        explanation: 'Freight train blocking express priority path',
-        expectedImpact: 'Reduces average delay by 3.2 minutes',
-        confidence: 0.85
-      },
-      {
+        description: `Clear path for Express ${expressTrain.number}`,
+        explanation: `Express train priority - ${delayedTrains.length} delayed trains blocking path`,
+        expectedImpact: `Reduces average delay by ${(2.5 + Math.random() * 2).toFixed(1)} minutes`,
+        confidence: 0.88
+      });
+    }
+    
+    // Platform optimization recommendations
+    if (stoppedTrains.length > 1) {
+      const train = stoppedTrains[0];
+      recommendations.push({
         type: 'ROUTE' as const,
-        description: 'Reroute TRAIN003 via Platform 2',
-        explanation: 'Platform 1 congestion detected',
-        expectedImpact: 'Improves throughput by 8%',
-        confidence: 0.92
-      },
-      {
+        description: `Reroute ${train.number} via alternate platform`,
+        explanation: `Platform congestion detected - ${stoppedTrains.length} trains waiting`,
+        expectedImpact: `Improves section throughput by ${(5 + Math.random() * 8).toFixed(0)}%`,
+        confidence: 0.91
+      });
+    }
+    
+    // Speed advisory for efficiency
+    const fastTrains = this.trains.filter(t => t.currentSpeed > 100 && t.type !== 'EXPRESS');
+    if (fastTrains.length > 0) {
+      const train = fastTrains[0];
+      recommendations.push({
         type: 'SPEED_ADVICE' as const,
-        description: 'Reduce speed for TRAIN001 to 80 km/h',
-        explanation: 'Signal coordination optimization',
-        expectedImpact: 'Prevents cascading delays',
-        confidence: 0.78
-      }
-    ];
+        description: `Optimize speed for ${train.number} to ${Math.round(train.currentSpeed * 0.8)} km/h`,
+        explanation: `Energy-efficient operation and signal coordination`,
+        expectedImpact: `Prevents cascading delays, saves fuel`,
+        confidence: 0.75
+      });
+    }
+    
+    // Fallback recommendations if no specific issues found
+    if (recommendations.length === 0) {
+      recommendations.push({
+        type: 'SPEED_ADVICE' as const,
+        description: 'Maintain current operational pace',
+        explanation: 'All trains operating within acceptable parameters',
+        expectedImpact: 'Optimal system performance maintained',
+        confidence: 0.95
+      });
+    }
 
     this.recommendations = recommendations.map((rec, index) => ({
-      id: `REC${(index + 1).toString().padStart(3, '0')}`,
+      id: `REC${Date.now()}_${index}`,
       timestamp: new Date(),
       type: rec.type,
-      affectedTrains: [`TRAIN${(index + 1).toString().padStart(3, '0')}`],
+      affectedTrains: this.trains.slice(index, index + 2).map(t => t.id),
       description: rec.description,
       explanation: rec.explanation,
       expectedImpact: rec.expectedImpact,
       confidence: rec.confidence,
-      priority: rec.confidence > 0.8 ? 'HIGH' : 'MEDIUM',
+      priority: rec.confidence > 0.85 ? 'HIGH' : rec.confidence > 0.75 ? 'MEDIUM' : 'LOW',
       status: 'PENDING'
     }));
   }
@@ -139,47 +203,119 @@ class RailwaySimulationService {
 
   private simulateTrainMovement() {
     this.trains.forEach(train => {
-      // Simulate movement
-      const speedVariation = (Math.random() - 0.5) * 10;
+      // More realistic speed variation based on train type and status
+      let speedVariation = 0;
+      
+      if (train.status === 'RUNNING') {
+        speedVariation = (Math.random() - 0.5) * 5; // Smaller variation for running trains
+      } else if (train.status === 'DELAYED') {
+        speedVariation = -Math.random() * 10; // Slow down delayed trains
+      } else if (train.status === 'STOPPED') {
+        train.currentSpeed = 0;
+        return; // Don't move stopped trains
+      }
+      
       train.currentSpeed = Math.max(0, Math.min(train.maxSpeed, train.currentSpeed + speedVariation));
       
-      // Move train based on speed (simplified)
+      // Move train based on speed with more realistic physics
+      const sectionLength = this.sections.find(s => s.id.includes('SEC_01'))?.length || 101;
       train.currentPosition += (train.currentSpeed / 3600) * 2; // 2-second intervals
       
-      // Wrap around section
-      if (train.currentPosition > 35) {
+      // Wrap around section for continuous simulation
+      if (train.currentPosition > sectionLength) {
         train.currentPosition = 0;
+        // Reset some properties when train completes section
+        if (Math.random() > 0.7) {
+          train.delay = Math.max(0, train.delay - 1); // Sometimes reduce delay
+        }
       }
 
-      // Random status changes
+      // More realistic status changes based on conditions
+      if (Math.random() > 0.98) {
+        const statusOptions = ['RUNNING', 'DELAYED', 'APPROACHING'];
+        // Bias towards running for express trains
+        if (train.type === 'EXPRESS' && Math.random() > 0.3) {
+          train.status = 'RUNNING';
+        } else {
+          train.status = statusOptions[Math.floor(Math.random() * statusOptions.length)] as any;
+        }
+      }
+
+      // Dynamic delay updates based on operational conditions
+      if (Math.random() > 0.92) {
+        const delayChange = Math.random() > 0.6 ? 1 : -1;
+        train.delay = Math.max(0, train.delay + delayChange);
+        
+        // Update estimated arrival
+        train.estimatedArrival = new Date(train.scheduledArrival.getTime() + train.delay * 60000);
+      }
+
+      // Simulate signal effects on train speed
       if (Math.random() > 0.95) {
-        const statuses = ['RUNNING', 'DELAYED', 'APPROACHING'];
-        train.status = statuses[Math.floor(Math.random() * statuses.length)] as any;
-      }
-
-      // Update delay occasionally
-      if (Math.random() > 0.9) {
-        train.delay += Math.random() > 0.5 ? 1 : -1;
-        train.delay = Math.max(0, train.delay);
+        const nearbySignals = this.sections[0]?.signals.filter(s => 
+          Math.abs(s.position - train.currentPosition) < 5
+        );
+        
+        if (nearbySignals?.some(s => s.state === 'RED')) {
+          train.currentSpeed = 0;
+          train.status = 'STOPPED';
+        } else if (nearbySignals?.some(s => s.state === 'YELLOW')) {
+          train.currentSpeed = Math.min(train.currentSpeed, 40);
+        }
       }
     });
   }
 
   private startSimulation() {
-    this.generateRecommendations();
+    // Only start if data is loaded
+    if (!this.dataLoaded) {
+      setTimeout(() => this.startSimulation(), 100);
+      return;
+    }
     
     this.simulationInterval = setInterval(() => {
       this.simulateTrainMovement();
       this.updateKPIMetrics();
       
-      // Occasionally generate new recommendations
-      if (Math.random() > 0.95) {
+      // Generate new recommendations based on current conditions
+      if (Math.random() > 0.96) {
         this.generateRecommendations();
       }
+
+      // Simulate signal state changes
+      this.updateSignalStates();
+      
+      // Update block occupancy
+      this.updateBlockOccupancy();
 
       // Notify subscribers
       this.notifySubscribers();
     }, 2000);
+  }
+
+  private updateSignalStates() {
+    this.sections.forEach(section => {
+      section.signals.forEach(signal => {
+        if (Math.random() > 0.98) {
+          const states = ['GREEN', 'YELLOW', 'RED'];
+          signal.state = states[Math.floor(Math.random() * states.length)] as any;
+        }
+      });
+    });
+  }
+
+  private updateBlockOccupancy() {
+    this.sections.forEach(section => {
+      section.blocks.forEach(block => {
+        // Check if any train is in this block
+        const trainsInBlock = this.trains.filter(train => 
+          train.currentPosition >= block.start && train.currentPosition <= block.end
+        );
+        
+        block.occupied = trainsInBlock.length > 0;
+        block.occupyingTrain = trainsInBlock.length > 0 ? trainsInBlock[0].id : undefined;
+      });
+    });
   }
 
   private notifySubscribers() {
