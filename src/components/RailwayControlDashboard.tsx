@@ -8,7 +8,6 @@ import { RecommendationsPanel } from './RecommendationsPanel';
 import { KPIDashboard } from './KPIDashboard';
 import { FileUpload } from './FileUpload';
 import { SectionSelector } from './SectionSelector';
-import { TrainSelector } from './TrainSelector';
 import { ChatBox } from './ChatBox';
 import { railwaySimulation } from '@/services/railwaySimulation';
 import { Train, Section, Recommendation, KPIMetrics } from '@/types/railway';
@@ -26,7 +25,6 @@ export const RailwayControlDashboard = () => {
     lastUpdated: new Date()
   });
   const [selectedSection, setSelectedSection] = useState<string | null>(null);
-  const [selectedTrain, setSelectedTrain] = useState<string | null>(null);
   const [isSimulationRunning, setIsSimulationRunning] = useState(true);
   const [lastUpdate, setLastUpdate] = useState(new Date());
   const [isGeneratingRecommendations, setIsGeneratingRecommendations] = useState(false);
@@ -73,10 +71,10 @@ export const RailwayControlDashboard = () => {
   const handleGenerateRecommendations = async () => {
     setIsGeneratingRecommendations(true);
     try {
-      // Pass current selections and instructions to AI
+      // Pass current section and instructions to AI
       await railwaySimulation.generateManualRecommendations(
         selectedSection || undefined,
-        selectedTrain || undefined,
+        undefined,
         controllerInstructions.join('; ')
       );
     } finally {
@@ -94,10 +92,8 @@ export const RailwayControlDashboard = () => {
   };
 
   const currentSection = sections.find(s => s.id === selectedSection);
-  const sectionTrains = trains.filter(t => 
-    // Filter trains in current section - for demo, show all trains
-    selectedSection ? true : true
-  );
+  // Show all trains regardless of section selection
+  const sectionTrains = trains;
 
   return (
     <div className="min-h-screen bg-background p-4 space-y-6">
@@ -139,17 +135,12 @@ export const RailwayControlDashboard = () => {
       </div>
 
       {/* Control Panel Row */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         <FileUpload onDataLoaded={handleDataLoaded} />
         <SectionSelector 
           sections={sections}
           selectedSection={selectedSection}
           onSectionChange={setSelectedSection}
-        />
-        <TrainSelector 
-          trains={sectionTrains}
-          selectedTrain={selectedTrain}
-          onTrainChange={setSelectedTrain}
         />
         <Card className="control-panel">
           <CardHeader>
@@ -161,7 +152,7 @@ export const RailwayControlDashboard = () => {
           <CardContent>
             <Button
               onClick={handleGenerateRecommendations}
-              disabled={isGeneratingRecommendations || !currentSection}
+              disabled={isGeneratingRecommendations || trains.length === 0}
               className="w-full font-mono"
               size="lg"
             >
@@ -178,7 +169,7 @@ export const RailwayControlDashboard = () => {
               )}
             </Button>
             <div className="text-xs text-muted-foreground mt-2 font-mono text-center">
-              Click to analyze current situation and get AI recommendations
+              Analyze all {trains.length} trains and get AI recommendations
             </div>
           </CardContent>
         </Card>
@@ -233,7 +224,7 @@ export const RailwayControlDashboard = () => {
               <div className="flex items-center gap-2">
                 <Upload className="h-4 w-4 text-primary" />
                 <span className="font-mono text-sm">
-                  Instructions: {controllerInstructions.length} Logged
+                  Total Trains: {trains.length} | Instructions: {controllerInstructions.length}
                 </span>
               </div>
             </div>
@@ -254,7 +245,7 @@ export const RailwayControlDashboard = () => {
           Indian Railways Decision Support System
         </p>
         <p className="mt-1">
-          Upload CSV Data • Select Section & Trains • Give Instructions • Get AI Suggestions
+          Upload CSV Data • Select Section • Monitor All Trains • Give Instructions • Get AI Suggestions
         </p>
       </div>
     </div>
