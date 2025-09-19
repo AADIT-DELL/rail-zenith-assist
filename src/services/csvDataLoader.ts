@@ -21,6 +21,11 @@ class CSVDataLoader {
   private csvData: CSVTrainData[] = [];
   private sectionsData: Map<string, Section> = new Map();
 
+  async loadFromText(csvText: string): Promise<void> {
+    this.parseCSV(csvText);
+    this.generateSections();
+  }
+
   async loadData(): Promise<void> {
     try {
       const response = await fetch('/src/data/synthetic_rail_traffic_sample_200.csv');

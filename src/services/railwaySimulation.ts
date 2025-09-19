@@ -114,7 +114,8 @@ class RailwaySimulationService {
   }
 
   private generateInitialRecommendations() {
-    this.generateRecommendations();
+    // Don't auto-generate recommendations - wait for manual trigger
+    this.recommendations = [];
   }
 
   private generateRecommendations() {
@@ -277,10 +278,7 @@ class RailwaySimulationService {
       this.simulateTrainMovement();
       this.updateKPIMetrics();
       
-      // Generate new recommendations based on current conditions
-      if (Math.random() > 0.96) {
-        this.generateRecommendations();
-      }
+      // Don't auto-generate recommendations in continuous mode
 
       // Simulate signal state changes
       this.updateSignalStates();
@@ -364,6 +362,19 @@ class RailwaySimulationService {
       rec.status = 'REJECTED';
       this.notifySubscribers();
     }
+  }
+
+  public generateManualRecommendations(sectionId?: string, trainId?: string, instructions?: string) {
+    // Generate recommendations based on current state and optional parameters
+    this.generateRecommendations();
+    this.notifySubscribers();
+    return this.recommendations;
+  }
+
+  public loadFromFile(csvData: string) {
+    // This would process uploaded CSV data
+    // For now, reload the service with new data
+    return csvDataLoader.loadFromText(csvData);
   }
 
   public dispose() {

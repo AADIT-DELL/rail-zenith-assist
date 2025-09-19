@@ -1,6 +1,8 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Train, Section } from '@/types/railway';
+import { TrainDetailModal } from './TrainDetailModal';
+import { useState } from 'react';
 
 interface MapViewProps {
   trains: Train[];
@@ -8,6 +10,14 @@ interface MapViewProps {
 }
 
 export const MapView = ({ trains, section }: MapViewProps) => {
+  const [selectedTrain, setSelectedTrain] = useState<Train | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const handleTrainClick = (train: Train) => {
+    setSelectedTrain(train);
+    setIsModalOpen(true);
+  };
+
   const getTrainIcon = (train: Train) => {
     switch (train.type) {
       case 'EXPRESS':
@@ -48,12 +58,24 @@ export const MapView = ({ trains, section }: MapViewProps) => {
         </div>
       </CardHeader>
       <CardContent>
-        <div className="relative bg-secondary/20 rounded-lg p-6 min-h-96 border border-border">
+        <div className="relative bg-gradient-to-b from-secondary/10 to-secondary/30 rounded-lg p-6 min-h-96 border border-border shadow-inner">
           {/* Track representation */}
           <div className="relative">
-            {/* Main track lines */}
-            <div className="absolute left-8 right-8 top-32 h-2 bg-accent rounded-full"></div>
-            <div className="absolute left-8 right-8 top-40 h-2 bg-accent rounded-full"></div>
+            {/* Realistic track lines with railroad ties */}
+            <div className="absolute left-8 right-8 top-32 h-3 bg-gradient-to-r from-zinc-600 to-zinc-500 rounded-sm shadow-sm"></div>
+            <div className="absolute left-8 right-8 top-40 h-3 bg-gradient-to-r from-zinc-600 to-zinc-500 rounded-sm shadow-sm"></div>
+            
+            {/* Railroad ties */}
+            {Array.from({ length: 20 }).map((_, i) => (
+              <div
+                key={i}
+                className="absolute w-1 h-8 bg-amber-900/60 rounded-sm"
+                style={{
+                  left: `${12 + i * 4}%`,
+                  top: '120px'
+                }}
+              />
+            ))}
             
             {/* Track labels */}
             <div className="absolute left-2 top-30 text-xs text-muted-foreground font-mono">UP</div>
@@ -127,20 +149,26 @@ export const MapView = ({ trains, section }: MapViewProps) => {
               return (
                 <div
                   key={train.id}
-                  className="absolute flex flex-col items-center cursor-pointer hover:scale-110 transition-transform"
+                  className="absolute flex flex-col items-center cursor-pointer hover:scale-110 transition-all hover:z-10 hover:drop-shadow-lg"
                   style={{
                     left: `${trainX}%`,
                     top: `${trackY}px`,
                     transform: 'translateX(-50%)'
                   }}
+                  onClick={() => handleTrainClick(train)}
+                  title={`Click for details: ${train.number}`}
                 >
-                  <div className="text-2xl">{getTrainIcon(train)}</div>
-                  <div className="bg-background/90 border border-border rounded px-2 py-1 text-xs font-mono">
+                  <div className="text-2xl drop-shadow-sm">{getTrainIcon(train)}</div>
+                  <div className="bg-background/95 backdrop-blur border border-border rounded-lg px-2 py-1 text-xs font-mono shadow-md">
                     <div className="font-bold text-primary">{train.number}</div>
                     <div className="text-muted-foreground">{Math.round(train.currentSpeed)} km/h</div>
+                    <div className="text-xs text-muted-foreground">
+                      {train.currentPosition.toFixed(1)} km
+                    </div>
                     {train.delay > 0 && (
-                      <div className="text-warning">+{train.delay}m</div>
+                      <div className="text-warning font-bold">+{train.delay}m</div>
                     )}
+                    <div className="text-xs text-primary mt-1">Click for details</div>
                   </div>
                 </div>
               );
@@ -201,6 +229,14 @@ export const MapView = ({ trains, section }: MapViewProps) => {
             <span>Stop</span>
           </div>
         </div>
+
+        {/* Train Detail Modal */}
+        <TrainDetailModal
+          train={selectedTrain}
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          sectionLength={section.length}
+        />
       </CardContent>
     </Card>
   );
