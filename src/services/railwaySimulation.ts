@@ -6,6 +6,7 @@ class RailwaySimulationService {
   private sections: Section[] = [];
   private recommendations: Recommendation[] = [];
   private incidents: Incident[] = [];
+  private currentInstructions: string = '';
   private kpiMetrics: KPIMetrics = {
     averageDelay: 0,
     throughput: 0,
@@ -353,46 +354,66 @@ class RailwaySimulationService {
     if (rec) {
       rec.status = 'ACCEPTED';
       
-      // Apply the recommendation's effects to affected trains
-      rec.affectedTrains.forEach(trainId => {
-        const train = this.trains.find(t => t.id === trainId);
-        if (train) {
-          switch (rec.type) {
-            case 'SPEED_ADVICE':
-              // Optimize speed - reduce delay slightly
-              train.delay = Math.max(0, train.delay - 2);
-              train.currentSpeed = Math.min(train.maxSpeed * 0.9, train.currentSpeed + 10);
-              if (train.delay <= 2) train.status = 'RUNNING';
-              break;
-              
-            case 'ROUTE':
-              // Rerouting reduces delay significantly
-              train.delay = Math.max(0, train.delay - 3);
-              train.status = 'RUNNING';
-              break;
-              
-            case 'HOLD':
-              // Clearing path for high-priority trains
-              if (train.priority === 1) {
-                train.delay = Math.max(0, train.delay - 4);
-                train.status = 'RUNNING';
-                train.currentSpeed = train.maxSpeed * 0.95;
-              }
-              break;
-          }
-          
-          // Update estimated arrival based on new delay
-          train.estimatedArrival = new Date(train.scheduledArrival.getTime() + train.delay * 60000);
-        }
-      });
+      // Check if controller instructions contain a numerical target
+      const targetMatch = this.currentInstructions.match(/(?:reduce|decrease).*?(?:to|down to)\s*(\d+)/i);
       
-      // Also apply general improvements to other delayed trains
-      const delayedTrains = this.trains.filter(t => t.delay > 5 && !rec.affectedTrains.includes(t.id));
-      delayedTrains.slice(0, 2).forEach(train => {
-        train.delay = Math.max(0, train.delay - 1);
-        if (train.delay <= 2) train.status = 'RUNNING';
-        train.estimatedArrival = new Date(train.scheduledArrival.getTime() + train.delay * 60000);
-      });
+      if (targetMatch) {
+        // Controller specified a target number - apply aggressive delay reduction
+        const targetDelayedCount = parseInt(targetMatch[1]);
+        const currentDelayedCount = this.trains.filter(t => t.delay > 2).length;
+        
+        if (currentDelayedCount > targetDelayedCount) {
+          const trainsToFix = currentDelayedCount - targetDelayedCount;
+          const delayedTrains = this.trains
+            .filter(t => t.delay > 2)
+            .sort((a, b) => a.delay - b.delay); // Fix trains with smallest delays first
+          
+          // Fix the required number of trains
+          delayedTrains.slice(0, trainsToFix).forEach(train => {
+            train.delay = Math.floor(Math.random() * 2); // Reduce to 0-2 minutes (on-time)
+            train.status = 'RUNNING';
+            train.currentSpeed = Math.min(train.maxSpeed * 0.9, train.currentSpeed + 15);
+            train.estimatedArrival = new Date(train.scheduledArrival.getTime() + train.delay * 60000);
+          });
+        }
+      } else {
+        // No specific target - apply standard recommendation effects
+        rec.affectedTrains.forEach(trainId => {
+          const train = this.trains.find(t => t.id === trainId);
+          if (train) {
+            switch (rec.type) {
+              case 'SPEED_ADVICE':
+                train.delay = Math.max(0, train.delay - 2);
+                train.currentSpeed = Math.min(train.maxSpeed * 0.9, train.currentSpeed + 10);
+                if (train.delay <= 2) train.status = 'RUNNING';
+                break;
+                
+              case 'ROUTE':
+                train.delay = Math.max(0, train.delay - 3);
+                train.status = 'RUNNING';
+                break;
+                
+              case 'HOLD':
+                if (train.priority === 1) {
+                  train.delay = Math.max(0, train.delay - 4);
+                  train.status = 'RUNNING';
+                  train.currentSpeed = train.maxSpeed * 0.95;
+                }
+                break;
+            }
+            
+            train.estimatedArrival = new Date(train.scheduledArrival.getTime() + train.delay * 60000);
+          }
+        });
+        
+        // Also apply general improvements to other delayed trains
+        const delayedTrains = this.trains.filter(t => t.delay > 5 && !rec.affectedTrains.includes(t.id));
+        delayedTrains.slice(0, 2).forEach(train => {
+          train.delay = Math.max(0, train.delay - 1);
+          if (train.delay <= 2) train.status = 'RUNNING';
+          train.estimatedArrival = new Date(train.scheduledArrival.getTime() + train.delay * 60000);
+        });
+      }
       
       this.updateKPIMetrics();
       this.notifySubscribers();
@@ -408,7 +429,10 @@ class RailwaySimulationService {
   }
 
   public generateManualRecommendations(sectionId?: string, trainId?: string, instructions?: string) {
-    // Generate recommendations based on current state and optional parameters
+    // Store controller instructions for use when accepting recommendations
+    if (instructions) {
+      this.currentInstructions = instructions;
+    }
     this.generateRecommendations();
     this.notifySubscribers();
     return this.recommendations;
