@@ -352,6 +352,49 @@ class RailwaySimulationService {
     const rec = this.recommendations.find(r => r.id === id);
     if (rec) {
       rec.status = 'ACCEPTED';
+      
+      // Apply the recommendation's effects to affected trains
+      rec.affectedTrains.forEach(trainId => {
+        const train = this.trains.find(t => t.id === trainId);
+        if (train) {
+          switch (rec.type) {
+            case 'SPEED_ADVICE':
+              // Optimize speed - reduce delay slightly
+              train.delay = Math.max(0, train.delay - 2);
+              train.currentSpeed = Math.min(train.maxSpeed * 0.9, train.currentSpeed + 10);
+              if (train.delay <= 2) train.status = 'RUNNING';
+              break;
+              
+            case 'ROUTE':
+              // Rerouting reduces delay significantly
+              train.delay = Math.max(0, train.delay - 3);
+              train.status = 'RUNNING';
+              break;
+              
+            case 'HOLD':
+              // Clearing path for high-priority trains
+              if (train.priority === 1) {
+                train.delay = Math.max(0, train.delay - 4);
+                train.status = 'RUNNING';
+                train.currentSpeed = train.maxSpeed * 0.95;
+              }
+              break;
+          }
+          
+          // Update estimated arrival based on new delay
+          train.estimatedArrival = new Date(train.scheduledArrival.getTime() + train.delay * 60000);
+        }
+      });
+      
+      // Also apply general improvements to other delayed trains
+      const delayedTrains = this.trains.filter(t => t.delay > 5 && !rec.affectedTrains.includes(t.id));
+      delayedTrains.slice(0, 2).forEach(train => {
+        train.delay = Math.max(0, train.delay - 1);
+        if (train.delay <= 2) train.status = 'RUNNING';
+        train.estimatedArrival = new Date(train.scheduledArrival.getTime() + train.delay * 60000);
+      });
+      
+      this.updateKPIMetrics();
       this.notifySubscribers();
     }
   }
