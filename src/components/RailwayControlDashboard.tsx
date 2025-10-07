@@ -102,7 +102,7 @@ export const RailwayControlDashboard = () => {
         <div>
           <h1 className="text-3xl font-bold text-foreground flex items-center gap-3">
             <div className="train-signal green"></div>
-            Railway Traffic Controller
+            RAIL SANCHALAN
           </h1>
           <p className="text-muted-foreground mt-1 font-mono">
             AI-Powered Decision Support System - Manual Control Mode
@@ -240,7 +240,7 @@ export const RailwayControlDashboard = () => {
       {/* Footer */}
       <div className="text-center text-xs text-muted-foreground font-mono py-4">
         <p>
-          Railway Traffic Controller v2.0 | 
+          RAIL SANCHALAN v2.0 | 
           Manual AI Trigger Mode | 
           Indian Railways Decision Support System
         </p>
