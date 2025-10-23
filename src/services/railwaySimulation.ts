@@ -479,12 +479,44 @@ class RailwaySimulationService {
     if (rec) {
       rec.status = 'ACCEPTED';
       
-      // Check if controller instructions contain a numerical target
-      const targetMatch = this.currentInstructions.match(/(?:reduce|decrease).*?(?:to|down to)\s*(\d+)/i);
+      // Check for average delay target (e.g., "avg delay should be less than 3 minutes", "average delay < 5")
+      const avgDelayMatch = this.currentInstructions.match(/(?:avg|average).*?(?:delay|delays?).*?(?:less than|below|under|<)\s*(\d+(?:\.\d+)?)/i);
       
-      if (targetMatch) {
-        // Controller specified a target number - apply aggressive delay reduction
-        const targetDelayedCount = parseInt(targetMatch[1]);
+      // Check for train count target (e.g., "reduce to 50", "delayed trains should be 30")
+      const trainCountMatch = this.currentInstructions.match(/(?:reduce|decrease|delayed?).*?(?:to|down to|should be|be)\s*(\d+)/i);
+      
+      if (avgDelayMatch) {
+        // Controller specified an average delay target
+        const targetAvgDelay = parseFloat(avgDelayMatch[1]);
+        const currentAvgDelay = this.trains.reduce((sum, t) => sum + t.delay, 0) / this.trains.length;
+        
+        if (currentAvgDelay > targetAvgDelay) {
+          // Calculate how much we need to reduce delays
+          const totalReductionNeeded = (currentAvgDelay - targetAvgDelay) * this.trains.length;
+          
+          // Sort trains by delay (highest first) to fix the worst offenders
+          const delayedTrains = this.trains
+            .filter(t => t.delay > 0)
+            .sort((a, b) => b.delay - a.delay);
+          
+          let reductionApplied = 0;
+          for (const train of delayedTrains) {
+            if (reductionApplied >= totalReductionNeeded) break;
+            
+            const maxReduction = train.delay;
+            const reductionAmount = Math.min(maxReduction, totalReductionNeeded - reductionApplied);
+            
+            train.delay = Math.max(0, train.delay - reductionAmount);
+            train.status = train.delay <= 2 ? 'RUNNING' : train.status;
+            train.currentSpeed = Math.min(train.maxSpeed * 0.9, train.currentSpeed + 15);
+            train.estimatedArrival = new Date(train.scheduledArrival.getTime() + train.delay * 60000);
+            
+            reductionApplied += reductionAmount;
+          }
+        }
+      } else if (trainCountMatch) {
+        // Controller specified a target number of delayed trains
+        const targetDelayedCount = parseInt(trainCountMatch[1]);
         const currentDelayedCount = this.trains.filter(t => t.delay > 2).length;
         
         if (currentDelayedCount > targetDelayedCount) {
