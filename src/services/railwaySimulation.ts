@@ -54,32 +54,157 @@ class RailwaySimulationService {
   }
 
   private initializeFallbackData() {
-    // Fallback section data
-    const section: Section = {
-      id: 'SEC_01',
-      name: 'Delhi-Gurgaon Section',
-      length: 101, // km - matches CSV data
-      maxSpeed: 160,
-      platforms: [
-        { id: 'PF1', number: '1', length: 400, occupied: false, trains: [] },
-        { id: 'PF2', number: '2', length: 400, occupied: false, trains: [] },
-        { id: 'PF3', number: '3', length: 350, occupied: false, trains: [] },
-      ],
-      signals: [
-        { id: 'SEC_01_SIG_1', position: 0, state: 'GREEN', type: 'HOME' },
-        { id: 'SEC_01_SIG_2', position: 25, state: 'GREEN', type: 'DISTANT' },
-        { id: 'SEC_01_SIG_3', position: 50, state: 'YELLOW', type: 'DISTANT' },
-        { id: 'SEC_01_SIG_4', position: 75, state: 'GREEN', type: 'DISTANT' },
-        { id: 'SEC_01_SIG_5', position: 101, state: 'GREEN', type: 'STARTER' },
-      ],
-      blocks: [
-        { id: 'SEC_01_BLK_1', start: 0, end: 25, occupied: false },
-        { id: 'SEC_01_BLK_2', start: 25, end: 50, occupied: true, occupyingTrain: 'T10025' },
-        { id: 'SEC_01_BLK_3', start: 50, end: 75, occupied: false },
-        { id: 'SEC_01_BLK_4', start: 75, end: 101, occupied: false },
-      ]
-    };
-    this.sections = [section];
+    // Fallback section data with multiple railway sections
+    const sections: Section[] = [
+      {
+        id: 'SEC_01',
+        name: 'Delhi-Gurgaon Section',
+        length: 101,
+        maxSpeed: 160,
+        platforms: [
+          { id: 'PF1', number: '1', length: 400, occupied: false, trains: [] },
+          { id: 'PF2', number: '2', length: 400, occupied: false, trains: [] },
+          { id: 'PF3', number: '3', length: 350, occupied: false, trains: [] },
+        ],
+        signals: [
+          { id: 'SEC_01_SIG_1', position: 0, state: 'GREEN', type: 'HOME' },
+          { id: 'SEC_01_SIG_2', position: 25, state: 'GREEN', type: 'DISTANT' },
+          { id: 'SEC_01_SIG_3', position: 50, state: 'YELLOW', type: 'DISTANT' },
+          { id: 'SEC_01_SIG_4', position: 75, state: 'GREEN', type: 'DISTANT' },
+          { id: 'SEC_01_SIG_5', position: 101, state: 'GREEN', type: 'STARTER' },
+        ],
+        blocks: [
+          { id: 'SEC_01_BLK_1', start: 0, end: 25, occupied: false },
+          { id: 'SEC_01_BLK_2', start: 25, end: 50, occupied: true, occupyingTrain: 'T10025' },
+          { id: 'SEC_01_BLK_3', start: 50, end: 75, occupied: false },
+          { id: 'SEC_01_BLK_4', start: 75, end: 101, occupied: false },
+        ]
+      },
+      {
+        id: 'SEC_02',
+        name: 'Mumbai-Pune Section',
+        length: 148,
+        maxSpeed: 140,
+        platforms: [
+          { id: 'PF4', number: '1', length: 450, occupied: false, trains: [] },
+          { id: 'PF5', number: '2', length: 450, occupied: false, trains: [] },
+          { id: 'PF6', number: '3', length: 400, occupied: false, trains: [] },
+          { id: 'PF7', number: '4', length: 400, occupied: false, trains: [] },
+        ],
+        signals: [
+          { id: 'SEC_02_SIG_1', position: 0, state: 'GREEN', type: 'HOME' },
+          { id: 'SEC_02_SIG_2', position: 37, state: 'GREEN', type: 'DISTANT' },
+          { id: 'SEC_02_SIG_3', position: 74, state: 'GREEN', type: 'DISTANT' },
+          { id: 'SEC_02_SIG_4', position: 111, state: 'YELLOW', type: 'DISTANT' },
+          { id: 'SEC_02_SIG_5', position: 148, state: 'GREEN', type: 'STARTER' },
+        ],
+        blocks: [
+          { id: 'SEC_02_BLK_1', start: 0, end: 37, occupied: false },
+          { id: 'SEC_02_BLK_2', start: 37, end: 74, occupied: false },
+          { id: 'SEC_02_BLK_3', start: 74, end: 111, occupied: false },
+          { id: 'SEC_02_BLK_4', start: 111, end: 148, occupied: false },
+        ]
+      },
+      {
+        id: 'SEC_03',
+        name: 'Howrah-Kharagpur Section',
+        length: 119,
+        maxSpeed: 130,
+        platforms: [
+          { id: 'PF8', number: '1', length: 380, occupied: false, trains: [] },
+          { id: 'PF9', number: '2', length: 380, occupied: false, trains: [] },
+          { id: 'PF10', number: '3', length: 350, occupied: false, trains: [] },
+        ],
+        signals: [
+          { id: 'SEC_03_SIG_1', position: 0, state: 'GREEN', type: 'HOME' },
+          { id: 'SEC_03_SIG_2', position: 30, state: 'GREEN', type: 'DISTANT' },
+          { id: 'SEC_03_SIG_3', position: 60, state: 'GREEN', type: 'DISTANT' },
+          { id: 'SEC_03_SIG_4', position: 90, state: 'GREEN', type: 'DISTANT' },
+          { id: 'SEC_03_SIG_5', position: 119, state: 'GREEN', type: 'STARTER' },
+        ],
+        blocks: [
+          { id: 'SEC_03_BLK_1', start: 0, end: 30, occupied: false },
+          { id: 'SEC_03_BLK_2', start: 30, end: 60, occupied: false },
+          { id: 'SEC_03_BLK_3', start: 60, end: 90, occupied: false },
+          { id: 'SEC_03_BLK_4', start: 90, end: 119, occupied: false },
+        ]
+      },
+      {
+        id: 'SEC_04',
+        name: 'Chennai-Bangalore Section',
+        length: 165,
+        maxSpeed: 150,
+        platforms: [
+          { id: 'PF11', number: '1', length: 400, occupied: false, trains: [] },
+          { id: 'PF12', number: '2', length: 400, occupied: false, trains: [] },
+          { id: 'PF13', number: '3', length: 380, occupied: false, trains: [] },
+          { id: 'PF14', number: '4', length: 380, occupied: false, trains: [] },
+        ],
+        signals: [
+          { id: 'SEC_04_SIG_1', position: 0, state: 'GREEN', type: 'HOME' },
+          { id: 'SEC_04_SIG_2', position: 41, state: 'GREEN', type: 'DISTANT' },
+          { id: 'SEC_04_SIG_3', position: 82, state: 'YELLOW', type: 'DISTANT' },
+          { id: 'SEC_04_SIG_4', position: 123, state: 'GREEN', type: 'DISTANT' },
+          { id: 'SEC_04_SIG_5', position: 165, state: 'GREEN', type: 'STARTER' },
+        ],
+        blocks: [
+          { id: 'SEC_04_BLK_1', start: 0, end: 41, occupied: false },
+          { id: 'SEC_04_BLK_2', start: 41, end: 82, occupied: false },
+          { id: 'SEC_04_BLK_3', start: 82, end: 123, occupied: true, occupyingTrain: 'T10030' },
+          { id: 'SEC_04_BLK_4', start: 123, end: 165, occupied: false },
+        ]
+      },
+      {
+        id: 'SEC_05',
+        name: 'Ahmedabad-Vadodara Section',
+        length: 97,
+        maxSpeed: 160,
+        platforms: [
+          { id: 'PF15', number: '1', length: 420, occupied: false, trains: [] },
+          { id: 'PF16', number: '2', length: 420, occupied: false, trains: [] },
+          { id: 'PF17', number: '3', length: 400, occupied: false, trains: [] },
+        ],
+        signals: [
+          { id: 'SEC_05_SIG_1', position: 0, state: 'GREEN', type: 'HOME' },
+          { id: 'SEC_05_SIG_2', position: 24, state: 'GREEN', type: 'DISTANT' },
+          { id: 'SEC_05_SIG_3', position: 48, state: 'GREEN', type: 'DISTANT' },
+          { id: 'SEC_05_SIG_4', position: 72, state: 'GREEN', type: 'DISTANT' },
+          { id: 'SEC_05_SIG_5', position: 97, state: 'GREEN', type: 'STARTER' },
+        ],
+        blocks: [
+          { id: 'SEC_05_BLK_1', start: 0, end: 24, occupied: false },
+          { id: 'SEC_05_BLK_2', start: 24, end: 48, occupied: false },
+          { id: 'SEC_05_BLK_3', start: 48, end: 72, occupied: false },
+          { id: 'SEC_05_BLK_4', start: 72, end: 97, occupied: false },
+        ]
+      },
+      {
+        id: 'SEC_06',
+        name: 'Jaipur-Ajmer Section',
+        length: 135,
+        maxSpeed: 120,
+        platforms: [
+          { id: 'PF18', number: '1', length: 360, occupied: false, trains: [] },
+          { id: 'PF19', number: '2', length: 360, occupied: false, trains: [] },
+          { id: 'PF20', number: '3', length: 340, occupied: false, trains: [] },
+        ],
+        signals: [
+          { id: 'SEC_06_SIG_1', position: 0, state: 'GREEN', type: 'HOME' },
+          { id: 'SEC_06_SIG_2', position: 34, state: 'GREEN', type: 'DISTANT' },
+          { id: 'SEC_06_SIG_3', position: 67, state: 'GREEN', type: 'DISTANT' },
+          { id: 'SEC_06_SIG_4', position: 101, state: 'YELLOW', type: 'DISTANT' },
+          { id: 'SEC_06_SIG_5', position: 135, state: 'GREEN', type: 'STARTER' },
+        ],
+        blocks: [
+          { id: 'SEC_06_BLK_1', start: 0, end: 34, occupied: false },
+          { id: 'SEC_06_BLK_2', start: 34, end: 67, occupied: false },
+          { id: 'SEC_06_BLK_3', start: 67, end: 101, occupied: false },
+          { id: 'SEC_06_BLK_4', start: 101, end: 135, occupied: false },
+        ]
+      }
+    ];
+    
+    this.sections = sections;
     this.generateFallbackTrains();
   }
 
