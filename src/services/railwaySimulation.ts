@@ -211,7 +211,7 @@ class RailwaySimulationService {
   private generateFallbackTrains() {
     const trainTypes = ['EXPRESS', 'PASSENGER', 'FREIGHT'] as const;
     
-    for (let i = 0; i < 8; i++) {
+    for (let i = 0; i < 60; i++) {
       const type = trainTypes[Math.floor(Math.random() * trainTypes.length)];
       const priority = type === 'EXPRESS' ? 1 : type === 'PASSENGER' ? 2 : 3;
       const delay = Math.random() * 15;
