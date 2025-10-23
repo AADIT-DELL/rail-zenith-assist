@@ -65,13 +65,13 @@ export const MapView = ({ trains, section }: MapViewProps) => {
             <div className="absolute left-8 right-8 top-32 h-3 bg-gradient-to-r from-zinc-600 to-zinc-500 rounded-sm shadow-sm"></div>
             <div className="absolute left-8 right-8 top-40 h-3 bg-gradient-to-r from-zinc-600 to-zinc-500 rounded-sm shadow-sm"></div>
             
-            {/* Railroad ties */}
-            {Array.from({ length: 20 }).map((_, i) => (
+            {/* Railroad ties - simplified */}
+            {Array.from({ length: 10 }).map((_, i) => (
               <div
                 key={i}
-                className="absolute w-1 h-8 bg-amber-900/60 rounded-sm"
+                className="absolute w-1 h-8 bg-amber-900/30 rounded-sm"
                 style={{
-                  left: `${12 + i * 4}%`,
+                  left: `${12 + i * 8}%`,
                   top: '120px'
                 }}
               />
@@ -81,26 +81,25 @@ export const MapView = ({ trains, section }: MapViewProps) => {
             <div className="absolute left-2 top-30 text-xs text-muted-foreground font-mono">UP</div>
             <div className="absolute left-2 top-38 text-xs text-muted-foreground font-mono">DOWN</div>
 
-            {/* Stations/Platforms */}
+            {/* Stations/Platforms - simplified */}
             {section.platforms.map((platform, index) => (
               <div
                 key={platform.id}
-                className={`absolute w-16 h-20 border-2 rounded-lg flex flex-col items-center justify-center text-xs
-                  ${platform.occupied ? 'border-warning bg-warning/20' : 'border-accent bg-accent/20'}`}
+                className={`absolute w-12 h-14 border rounded-lg flex flex-col items-center justify-center text-xs
+                  ${platform.occupied ? 'border-warning bg-warning/10' : 'border-accent bg-accent/10'}`}
                 style={{
                   left: `${20 + index * 30}%`,
                   top: '20px'
                 }}
               >
-                <div className="font-bold text-foreground">PF {platform.number}</div>
-                <div className="text-muted-foreground">{platform.length}m</div>
+                <div className="font-bold text-foreground text-xs">P{platform.number}</div>
                 {platform.occupied && (
-                  <Badge className="text-xs mt-1 bg-warning">Occupied</Badge>
+                  <div className="w-2 h-2 bg-warning rounded-full mt-1"></div>
                 )}
               </div>
             ))}
 
-            {/* Signals */}
+            {/* Signals - simplified */}
             {section.signals.map((signal, index) => (
               <div
                 key={signal.id}
@@ -109,35 +108,26 @@ export const MapView = ({ trains, section }: MapViewProps) => {
                   left: `${15 + (signal.position / section.length) * 70}%`,
                   top: '80px'
                 }}
+                title={`${signal.id} - ${signal.type}`}
               >
                 <div className={getSignalColor(signal.state)}></div>
-                <div className="text-xs text-muted-foreground font-mono mt-1">
-                  {signal.id}
-                </div>
-                <div className="text-xs text-muted-foreground">
-                  {signal.type}
-                </div>
               </div>
             ))}
 
-            {/* Track blocks */}
+            {/* Track blocks - simplified */}
             {section.blocks.map((block, index) => (
               <div
                 key={block.id}
-                className={`absolute h-8 border rounded flex items-center justify-center text-xs font-mono
-                  ${block.occupied ? 'bg-critical/30 border-critical' : 'bg-success/30 border-success'}`}
+                className={`absolute h-6 border rounded flex items-center justify-center text-xs font-mono
+                  ${block.occupied ? 'bg-critical/20 border-critical/50' : 'bg-success/10 border-success/30'}`}
                 style={{
                   left: `${10 + (block.start / section.length) * 80}%`,
                   width: `${((block.end - block.start) / section.length) * 80}%`,
                   top: '180px'
                 }}
+                title={block.occupied && block.occupyingTrain ? `${block.id} - ${block.occupyingTrain}` : block.id}
               >
-                <div className="text-center">
-                  <div>{block.id}</div>
-                  {block.occupied && block.occupyingTrain && (
-                    <div className="text-critical font-bold">{block.occupyingTrain}</div>
-                  )}
-                </div>
+                <div className="text-xs">{block.id}</div>
               </div>
             ))}
 
@@ -159,16 +149,12 @@ export const MapView = ({ trains, section }: MapViewProps) => {
                   title={`Click for details: ${train.number}`}
                 >
                   <div className="text-2xl drop-shadow-sm">{getTrainIcon(train)}</div>
-                  <div className="bg-background/95 backdrop-blur border border-border rounded-lg px-2 py-1 text-xs font-mono shadow-md">
+                  <div className="bg-background/95 backdrop-blur border border-border rounded px-2 py-0.5 text-xs font-mono shadow-sm">
                     <div className="font-bold text-primary">{train.number}</div>
                     <div className="text-muted-foreground">{Math.round(train.currentSpeed)} km/h</div>
-                    <div className="text-xs text-muted-foreground">
-                      {train.currentPosition.toFixed(1)} km
-                    </div>
                     {train.delay > 0 && (
-                      <div className="text-warning font-bold">+{train.delay}m</div>
+                      <div className="text-warning text-xs">+{train.delay}m</div>
                     )}
-                    <div className="text-xs text-primary mt-1">Click for details</div>
                   </div>
                 </div>
               );
