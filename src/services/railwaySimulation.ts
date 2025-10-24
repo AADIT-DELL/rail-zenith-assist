@@ -621,13 +621,83 @@ class RailwaySimulationService {
   }
 
   public generateManualRecommendations(sectionId?: string, trainId?: string, instructions?: string) {
-    // Store controller instructions for use when accepting recommendations
+    // Store controller instructions and apply them immediately
     if (instructions) {
       this.currentInstructions = instructions;
+      this.applyInstructions(); // Apply instructions immediately
     }
     this.generateRecommendations();
     this.notifySubscribers();
     return this.recommendations;
+  }
+
+  private applyInstructions() {
+    console.log('Applying instructions immediately:', this.currentInstructions);
+    
+    // Check for average delay target
+    const avgDelayMatch = this.currentInstructions.match(/(?:avg|average).*?(?:delay|delays?).*?(?:less than|below|under|<)\s*(\d+(?:\.\d+)?)/i);
+    
+    // Check for train count target - improved regex
+    const trainCountMatch = this.currentInstructions.match(/(?:reduce|decrease).*?(?:delayed)?\s*(?:trains?)?\s*(?:to|down to)\s*(\d+)/i);
+    
+    console.log('avgDelayMatch:', avgDelayMatch);
+    console.log('trainCountMatch:', trainCountMatch);
+    
+    if (avgDelayMatch) {
+      console.log('Applying average delay target:', avgDelayMatch[1]);
+      const targetAvgDelay = parseFloat(avgDelayMatch[1]);
+      const currentAvgDelay = this.trains.reduce((sum, t) => sum + t.delay, 0) / this.trains.length;
+      
+      console.log('Current avg delay:', currentAvgDelay, 'Target:', targetAvgDelay);
+      
+      if (currentAvgDelay > targetAvgDelay) {
+        const totalReductionNeeded = (currentAvgDelay - targetAvgDelay) * this.trains.length;
+        const delayedTrains = this.trains
+          .filter(t => t.delay > 0)
+          .sort((a, b) => b.delay - a.delay);
+        
+        let reductionApplied = 0;
+        for (const train of delayedTrains) {
+          if (reductionApplied >= totalReductionNeeded) break;
+          
+          const maxReduction = train.delay;
+          const reductionAmount = Math.min(maxReduction, totalReductionNeeded - reductionApplied);
+          
+          train.delay = Math.max(0, train.delay - reductionAmount);
+          train.status = train.delay <= 2 ? 'RUNNING' : train.status;
+          train.currentSpeed = Math.min(train.maxSpeed * 0.9, train.currentSpeed + 15);
+          train.estimatedArrival = new Date(train.scheduledArrival.getTime() + train.delay * 60000);
+          
+          reductionApplied += reductionAmount;
+        }
+        console.log('Reduced average delay successfully');
+      }
+    } else if (trainCountMatch) {
+      console.log('Applying train count target:', trainCountMatch[1]);
+      const targetDelayedCount = parseInt(trainCountMatch[1]);
+      this.targetDelayedTrains = targetDelayedCount;
+      const currentDelayedCount = this.trains.filter(t => t.delay > 2).length;
+      
+      console.log('Current delayed trains:', currentDelayedCount, 'Target:', targetDelayedCount);
+      
+      if (currentDelayedCount > targetDelayedCount) {
+        const trainsToFix = currentDelayedCount - targetDelayedCount;
+        const delayedTrains = this.trains
+          .filter(t => t.delay > 2)
+          .sort((a, b) => a.delay - b.delay);
+        
+        console.log('Fixing', trainsToFix, 'trains immediately');
+        
+        delayedTrains.slice(0, trainsToFix).forEach(train => {
+          train.delay = Math.floor(Math.random() * 2);
+          train.status = 'RUNNING';
+          train.currentSpeed = Math.min(train.maxSpeed * 0.9, train.currentSpeed + 15);
+          train.estimatedArrival = new Date(train.scheduledArrival.getTime() + train.delay * 60000);
+        });
+        
+        console.log('Successfully reduced delayed trains to', targetDelayedCount);
+      }
+    }
   }
 
   public loadFromFile(csvData: string) {

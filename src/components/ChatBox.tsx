@@ -54,7 +54,7 @@ export const ChatBox = ({ onInstructionSent }: ChatBoxProps) => {
     setTimeout(() => {
       const ackMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
-        message: 'Instruction received and logged. Use SUGGESTION button to get AI recommendations.',
+        message: 'Instruction logged. Click GET SUGGESTIONS button to apply your instruction.',
         timestamp: new Date(),
         sender: 'system'
       };
