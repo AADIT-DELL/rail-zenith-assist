@@ -7,6 +7,7 @@ class RailwaySimulationService {
   private recommendations: Recommendation[] = [];
   private incidents: Incident[] = [];
   private currentInstructions: string = '';
+  private targetDelayedTrains: number | null = null; // Track target for delayed trains
   private kpiMetrics: KPIMetrics = {
     averageDelay: 0,
     throughput: 0,
@@ -369,9 +370,25 @@ class RailwaySimulationService {
       }
 
       // Dynamic delay updates based on operational conditions
+      // Respect target delayed trains if set
+      const currentDelayedCount = this.trains.filter(t => t.delay > 2).length;
+      
       if (Math.random() > 0.92) {
         const delayChange = Math.random() > 0.6 ? 1 : -1;
-        train.delay = Math.max(0, train.delay + delayChange);
+        
+        // Only add delay if we're below target or no target is set
+        if (delayChange > 0 && this.targetDelayedTrains !== null) {
+          if (currentDelayedCount >= this.targetDelayedTrains) {
+            return; // Don't add more delays if at or above target
+          }
+        }
+        
+        // Prioritize removing delays if above target
+        if (this.targetDelayedTrains !== null && currentDelayedCount > this.targetDelayedTrains && train.delay > 2) {
+          train.delay = Math.max(0, train.delay - 1); // Force delay reduction
+        } else {
+          train.delay = Math.max(0, train.delay + delayChange);
+        }
         
         // Update estimated arrival
         train.estimatedArrival = new Date(train.scheduledArrival.getTime() + train.delay * 60000);
@@ -527,6 +544,7 @@ class RailwaySimulationService {
         console.log('Applying train count target:', trainCountMatch[1]);
         // Controller specified a target number of delayed trains
         const targetDelayedCount = parseInt(trainCountMatch[1]);
+        this.targetDelayedTrains = targetDelayedCount; // Store target to maintain it
         const currentDelayedCount = this.trains.filter(t => t.delay > 2).length;
         
         console.log('Current delayed trains:', currentDelayedCount, 'Target:', targetDelayedCount);
