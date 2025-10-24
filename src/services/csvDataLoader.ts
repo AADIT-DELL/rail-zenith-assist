@@ -92,6 +92,23 @@ class CSVDataLoader {
     return result;
   }
 
+  private getSectionName(sectionId: string): string {
+    const sectionNames: Record<string, string> = {
+      'SEC_01': 'Delhi - Gurgaon',
+      'SEC_02': 'Mumbai - Pune',
+      'SEC_03': 'Bangalore - Chennai',
+      'SEC_04': 'Kolkata - Howrah',
+      'SEC_05': 'Hyderabad - Secunderabad',
+      'SEC_06': 'Ahmedabad - Vadodara',
+      'SEC_07': 'Jaipur - Ajmer',
+      'SEC_08': 'Lucknow - Kanpur',
+      'SEC_09': 'Kochi - Trivandrum',
+      'SEC_10': 'Chandigarh - Ambala'
+    };
+    
+    return sectionNames[sectionId] || sectionId.replace('_', ' ');
+  }
+
   private generateSections(): void {
     const sectionMap = new Map<string, { length: number; signals: string[] }>();
     
@@ -116,7 +133,7 @@ class CSVDataLoader {
     sectionMap.forEach((data, sectionId) => {
       const section: Section = {
         id: sectionId,
-        name: sectionId.replace('_', ' '),
+        name: this.getSectionName(sectionId),
         length: data.length,
         maxSpeed: 160, // Default max speed
         platforms: this.generatePlatforms(sectionId),
