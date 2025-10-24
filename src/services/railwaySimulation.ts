@@ -479,16 +479,24 @@ class RailwaySimulationService {
     if (rec) {
       rec.status = 'ACCEPTED';
       
+      console.log('Processing instruction:', this.currentInstructions);
+      
       // Check for average delay target (e.g., "avg delay should be less than 3 minutes", "average delay < 5")
       const avgDelayMatch = this.currentInstructions.match(/(?:avg|average).*?(?:delay|delays?).*?(?:less than|below|under|<)\s*(\d+(?:\.\d+)?)/i);
       
-      // Check for train count target (e.g., "reduce to 50", "delayed trains should be 30")
-      const trainCountMatch = this.currentInstructions.match(/(?:reduce|decrease|delayed?).*?(?:to|down to|should be|be)\s*(\d+)/i);
+      // Check for train count target - improved regex to handle "delayed trains"
+      const trainCountMatch = this.currentInstructions.match(/(?:reduce|decrease).*?(?:delayed)?\s*(?:trains?)?\s*(?:to|down to)\s*(\d+)/i);
+      
+      console.log('avgDelayMatch:', avgDelayMatch);
+      console.log('trainCountMatch:', trainCountMatch);
       
       if (avgDelayMatch) {
+        console.log('Applying average delay target:', avgDelayMatch[1]);
         // Controller specified an average delay target
         const targetAvgDelay = parseFloat(avgDelayMatch[1]);
         const currentAvgDelay = this.trains.reduce((sum, t) => sum + t.delay, 0) / this.trains.length;
+        
+        console.log('Current avg delay:', currentAvgDelay, 'Target:', targetAvgDelay);
         
         if (currentAvgDelay > targetAvgDelay) {
           // Calculate how much we need to reduce delays
@@ -513,17 +521,23 @@ class RailwaySimulationService {
             
             reductionApplied += reductionAmount;
           }
+          console.log('Reduced average delay. Trains fixed:', delayedTrains.length);
         }
       } else if (trainCountMatch) {
+        console.log('Applying train count target:', trainCountMatch[1]);
         // Controller specified a target number of delayed trains
         const targetDelayedCount = parseInt(trainCountMatch[1]);
         const currentDelayedCount = this.trains.filter(t => t.delay > 2).length;
+        
+        console.log('Current delayed trains:', currentDelayedCount, 'Target:', targetDelayedCount);
         
         if (currentDelayedCount > targetDelayedCount) {
           const trainsToFix = currentDelayedCount - targetDelayedCount;
           const delayedTrains = this.trains
             .filter(t => t.delay > 2)
             .sort((a, b) => a.delay - b.delay); // Fix trains with smallest delays first
+          
+          console.log('Fixing', trainsToFix, 'trains');
           
           // Fix the required number of trains
           delayedTrains.slice(0, trainsToFix).forEach(train => {
@@ -532,8 +546,11 @@ class RailwaySimulationService {
             train.currentSpeed = Math.min(train.maxSpeed * 0.9, train.currentSpeed + 15);
             train.estimatedArrival = new Date(train.scheduledArrival.getTime() + train.delay * 60000);
           });
+          
+          console.log('Successfully reduced delayed trains to target');
         }
       } else {
+        console.log('No specific instruction match, applying standard recommendation');
         // No specific target - apply standard recommendation effects
         rec.affectedTrains.forEach(trainId => {
           const train = this.trains.find(t => t.id === trainId);
